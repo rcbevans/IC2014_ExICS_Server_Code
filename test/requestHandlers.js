@@ -80,10 +80,10 @@ function ad_result(response, postData) {
 		var authenticated = '';
 
 		if (auth) {
-			console.log('Authenticated!');
+			console.log('Authenticated user ' + uname);
 			authenticated = 'YAYYYY AUTHENTICATED!';
 		} else {
-			console.log('Authentication failed!');
+			console.log('Authentication failed for user ' + uname);
 			authenticated = 'SUCH SAD, NO AUTH';
 		}
 		response.writeHead(200, {

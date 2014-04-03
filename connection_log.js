@@ -15,7 +15,7 @@ wss.on('connection', function(socket){
 
 	console.log("New User Connecting");
 
-	var id = counter++;
+	counter++;
 	clients.push(socket);
 
 	console.log("We now have %d Users", counter);
