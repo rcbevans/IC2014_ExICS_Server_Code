@@ -16,6 +16,7 @@ function examData(query, auth, clientResponse){
 	var converters = {};
 	converters['default'] = csvConvert.defaultView;
 	converters['date'] = csvConvert.dateView;
+  converters['yeargroup'] = csvConvert.yearGroupView;
 
 	request(
     {
@@ -36,10 +37,10 @@ function examData(query, auth, clientResponse){
   				converters['default'](body, clientResponse);
   			}
   		} else {
-  			console.log(error);
-  			clientResponse.writeHead(403, http.STATUS_CODES[403]);
-  			clientResponse.write("NOT AUTHORIZED!");
-			clientResponse.end("NOT AUTHORIZED!");
+  		  console.log(error);
+  		  clientResponse.writeHead(403, http.STATUS_CODES[403]);
+  		  clientResponse.write("NOT AUTHORIZED!");
+			 clientResponse.end("NOT AUTHORIZED!");
   		}
     });
 }
