@@ -4,34 +4,20 @@ var WebSocketServer = require("ws").Server;
 var ldapAuthenticate = require("./wsAuth").authenticate;
 
 var MSG_TYPE = {
-	PROTOCOL_HANDSHAKE: {
-		value: 0,
-		name: "PROTOCOL_HANDSHAKE"
-	},
-	GET_USERS: {
-		value: 1,
-		name: "GET_USERS"
-	},
-	SEND_MESSAGE: {
-		value: 2,
-		name: "SEND_MESSAGE"
-	},
-	FAILURE_OCCURRED: {
-		value: -1,
-		name: "FAILURE_OCCURRED"
-	},
-	TERMINATE_CONNECTION: {
-		value: -3,
-		name: "TERMINATE_CONNECTION"
-	}
+	PROTOCOL_HANDSHAKE: 0,
+	GET_USERS: 1,
+	SEND_MESSAGE: 2,
+	SUCCESS: 69,
+	FAILURE_OCCURRED: -1,
+	TERMINATE_CONNECTION: -3
 };
 
 var counter = 0;
 var clients = [];
 
-console.log("Starting WebSocket Server");
+console.log("Starting WebSocket Server on port 8081");
 var wss = new WebSocketServer({
-	port: 8080
+	port: 8081
 });
 
 wss.on('connection', onConnection);
@@ -56,12 +42,12 @@ function onConnection(socket) {
 		try {
 			var parsedMessage = JSON.parse(data);
 			switch (parseInt(parsedMessage["header"]["type"])) {
-				case MSG_TYPE.PROTOCOL_HANDSHAKE.value:
+				case MSG_TYPE.PROTOCOL_HANDSHAKE:
 					console.log("Received protocol handshake from user %s", parsedMessage["header"]["sender"]);
 					ldapAuthenticate(parsedMessage["payload"]["username"], parsedMessage["payload"]["password"], completeAuth);
 					break;
 
-				case MSG_TYPE.SEND_MESSAGE.value:
+				case MSG_TYPE.SEND_MESSAGE:
 					if (!auth) {
 						closeSocket(parsedMessage["header"]["sender"]);
 					} else {
@@ -82,8 +68,9 @@ function onConnection(socket) {
 								}
 							}
 							if (!found) {
-								var response;
-								response["header"]["type"] = MSG_TYPE.FAILURE_OCCURRED.value;
+								var response = {};
+								response["header"] = {};
+								response["header"]["type"] = MSG_TYPE.FAILURE_OCCURRED;
 								response["header"]["sender"] = parsedMessage["header"]["sender"];
 								response["header"]["receiver"] = parsedMessage["header"]["receiver"];
 								response["payload"] = parsedMessage["payload"];
@@ -93,7 +80,7 @@ function onConnection(socket) {
 					}
 					break;
 
-				case MSG_TYPE.TERMINATE_CONNECTION.value:
+				case MSG_TYPE.TERMINATE_CONNECTION:
 					console.log("Received request to disconnect from user %s", parsedMessage["header"]["sender"]);
 					socket.close();
 					counter--;
@@ -126,7 +113,7 @@ function onConnection(socket) {
 	}
 
 	function closeSocket(uname) {
-		if(username != "")
+		if (username != "")
 			console.log("User %s was not authorised, terminating connection", username);
 		else
 			console.log("User %s was not authorised, terminating connection", uname);
@@ -144,11 +131,22 @@ function onConnection(socket) {
 			username = uname;
 			auth = true;
 			console.log("Successfully authenticated user %s", uname);
+			sendSuccess(uname);
 		} else {
 			console.log("Disconnecting user %s as authentication failed", uname);
 			socket.close();
 			counter--;
 			console.log("We now have %d users", counter);
 		}
+	}
+
+	function sendSuccess(uname) {
+		var response = {};
+		response["header"] = {};
+		response["header"]["type"] = MSG_TYPE.SUCCESS;
+		response["header"]["sender"] = uname;
+		response["payload"] = {};
+		response["payload"]["message"] = "Authentication Successful!";
+		socket.send(JSON.stringify(response));
 	}
 }
