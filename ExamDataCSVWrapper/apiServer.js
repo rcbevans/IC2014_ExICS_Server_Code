@@ -5,7 +5,8 @@ var url = require('url');
 
 function startServer(port, router, handles){
 	function onRequest(request, response){
-		console.log("Received http request");
+		var currTime = new Date();
+		console.log(currTime.getDate() + "/" + (currTime.getMonth()+1), currTime.getHours() + ":" + currTime.getMinutes(), "Received http request");
 		
 		var url_parts = url.parse(request.url, true);
 
@@ -30,7 +31,8 @@ function startServer(port, router, handles){
 function startSSLServer(port, router, handles){
 
 	function onRequest(request, response){
-		console.log("Received https request");
+		var currTime = new Date();
+		console.log(currTime.getDate() + "/" + (currTime.getMonth()+1), currTime.getHours() + ":" + currTime.getMinutes(), "Received https request");
 		
 		var url_parts = url.parse(request.url, true);
 

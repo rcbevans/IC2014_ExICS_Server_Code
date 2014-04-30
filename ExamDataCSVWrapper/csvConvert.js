@@ -68,7 +68,6 @@ function dateView(csvString, response){
 
 
 		if (!(examDate in result['dates'])){
-			console.log("Creating JSON array for ", examDate);
 			result['dates'][examDate] = [];
 		}
 
@@ -150,9 +149,123 @@ function yearGroupView(csvString, response){
 
 	response.writeHead(200, http.STATUS_CODES[200], {'Content-Type': 'application/json'});
 	response.end(JSON.stringify(result, null, ppSpace));
-
 }
+
+function roomView(csvString, response){
+	var lines = csvString.replace(/\n%/g, '\n').replace(/\n$|^%/g, '').split("\n");
+
+	var result = {};
+
+	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s\d+\s\d+:\d+:\d+\s\w+\s\d{4}/)[0];
+
+	result['examPeriod'] = lines[1].match(/\d{4}-\d{4}/)[0];
+
+	result['view'] = "Rooms"
+
+	var headers = lines[3].split("\t");
+
+	result['rooms'] = {};
+
+	var roomPosition = null;
+
+	for (var i = 0; i < headers.length; i++){
+		if (headers[i].toLowerCase() == "room"){
+			roomPosition = i;
+			break;
+		}
+	}
+
+	for(var i = 4; i < lines.length; i++){
+		var currentExamLine = lines[i].split("\t");
+
+		var examRooms = currentExamLine[roomPosition].split("+");
+
+		examObj = {};
+
+		for (var j = 0; j < headers.length; j++){
+			examObj[headers[j]] = currentExamLine[j];
+		}
+
+		for (var j = 0; j < examRooms.length; j++){
+			if (!(examRooms[j] in result['rooms'])){
+				result['rooms'][examRooms[j]] = [];
+			}
+			result['rooms'][examRooms[j]].push(examObj);
+		}
+	}
+
+	response.writeHead(200, http.STATUS_CODES[200], {'Content-Type': 'application/json'});
+	response.end(JSON.stringify(result, null, ppSpace));
+}
+
+function sessionView(csvString, response){
+	var lines = csvString.replace(/\n%/g, '\n').replace(/\n$|^%/g, '').split("\n");
+
+	var result = {};
+
+	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s\d+\s\d+:\d+:\d+\s\w+\s\d{4}/)[0];
+
+	result['examPeriod'] = lines[1].match(/\d{4}-\d{4}/)[0];
+
+	result['view'] = "Session"
+
+	var headers = lines[3].split("\t");
+
+	result['dates'] = {};
+
+	var datePosition = null;
+	var timePosition = null;
+
+	for (var i = 0; i < headers.length; i++){
+		if (headers[i].toLowerCase() == "date"){
+			datePosition = i;
+		} else if (headers[i].toLowerCase() == "time"){
+			timePosition = i;
+		}
+
+		if (datePosition != null && timePosition != null){
+			break;
+		}
+	}
+
+	for(var i = 4; i < lines.length; i++){
+		var currentExamLine = lines[i].split("\t");
+
+		var examDate = currentExamLine[datePosition];
+
+		examObj = {};
+
+		for (var j = 0; j < headers.length; j++){
+			examObj[headers[j]] = currentExamLine[j];
+		}
+
+		var examTime = currentExamLine[timePosition].split(":");
+
+		if (!(examDate in result['dates'])){
+			result['dates'][examDate] = {};
+		}
+		
+		if (examTime[0] <= 13){
+			if(!("Morning" in result['dates'][examDate])){
+				result['dates'][examDate]["Morning"] = [];
+			}
+			result['dates'][examDate]["Morning"].push(examObj);
+		} else {
+			if(!("Afternoon" in result['dates'][examDate])){
+				result['dates'][examDate]["Afternoon"] = [];
+			}
+			result['dates'][examDate]["Afternoon"].push(examObj);
+		}
+		
+	}
+
+	response.writeHead(200, http.STATUS_CODES[200], {'Content-Type': 'application/json'});
+	response.end(JSON.stringify(result, null, ppSpace));
+}
+
 
 exports.defaultView = defaultView;
 exports.dateView = dateView;
 exports.yearGroupView = yearGroupView;
+exports.roomView = roomView;
+exports.sessionView = sessionView;
