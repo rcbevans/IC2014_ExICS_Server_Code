@@ -101,5 +101,12 @@ Room</pre>
 			This view is an extension to the date view and groups the exam data by date, then by morning or afternoon session. &nbsp;The morning/afternoon session division is currently defined as 13:00.</p>
 		<p>
 			{returned_data} = &#39;dates&#39; : { $exam_date : { &#39;Morning&#39; : [], &#39;Afternoon&#39; : [] } }</p>
+
+		<h3>
+			ExICS</h3>
+		<p>
+			?view=exics</p>
+		<p>
+			This view is different to the others in the data it provides.  It returns a date in JSON Zulu time, as well as splitting the rooms and exam module codes into JSON arrays for use in parsing by the ExICS system.</p>
 	</body>
 </html>

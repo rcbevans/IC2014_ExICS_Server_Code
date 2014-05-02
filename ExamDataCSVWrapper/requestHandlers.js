@@ -20,6 +20,7 @@ function examData(query, auth, clientResponse){
   	converters['yeargroup'] = csvConvert.yearGroupView;
   	converters['room'] = csvConvert.roomView;
   	converters['session'] = csvConvert.sessionView;
+  	converters['exics'] = csvConvert.ExICSView;
 
 	request(
     {
@@ -60,10 +61,6 @@ function apiDoc(query, auth, clientResponse){
     },
     function (error, response, body) {
         if (!error && response.statusCode == 200) {
-  			//TO-DO API Documentation
-  			// clientResponse.writeHead(200, http.STATUS_CODES[200]);
-  			// clientResponse.write("TODO");
-  			// clientResponse.end();
 
   			fs.readFile('./apiDoc.html', function (err, html) {
 				if (err) {

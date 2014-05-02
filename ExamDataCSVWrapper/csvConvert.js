@@ -6,7 +6,7 @@ function defaultView(csvString, response){
 
 	var result = {};
 
-	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s\d+\s\d+:\d+:\d+\s\w+\s\d{4}/)[0];
+	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s+\d+\s\d+:\d+:\d+\s\w{3}\s\d{4}/)[0];
 
 	result['examPeriod'] = lines[1].match(/\d{4}-\d{4}/)[0];
 
@@ -36,7 +36,7 @@ function dateView(csvString, response){
 
 	var result = {};
 
-	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s\d+\s\d+:\d+:\d+\s\w+\s\d{4}/)[0];
+	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s+\d+\s\d+:\d+:\d+\s\w{3}\s\d{4}/)[0];
 
 	result['examPeriod'] = lines[1].match(/\d{4}-\d{4}/)[0];
 
@@ -84,7 +84,7 @@ function yearGroupView(csvString, response){
 
 	var result = {};
 
-	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s\d+\s\d+:\d+:\d+\s\w+\s\d{4}/)[0];
+	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s+\d+\s\d+:\d+:\d+\s\w{3}\s\d{4}/)[0];
 
 	result['examPeriod'] = lines[1].match(/\d{4}-\d{4}/)[0];
 
@@ -156,7 +156,7 @@ function roomView(csvString, response){
 
 	var result = {};
 
-	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s\d+\s\d+:\d+:\d+\s\w+\s\d{4}/)[0];
+	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s+\d+\s\d+:\d+:\d+\s\w{3}\s\d{4}/)[0];
 
 	result['examPeriod'] = lines[1].match(/\d{4}-\d{4}/)[0];
 
@@ -203,7 +203,7 @@ function sessionView(csvString, response){
 
 	var result = {};
 
-	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s\d+\s\d+:\d+:\d+\s\w+\s\d{4}/)[0];
+	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s+\d+\s\d+:\d+:\d+\s\w{3}\s\d{4}/)[0];
 
 	result['examPeriod'] = lines[1].match(/\d{4}-\d{4}/)[0];
 
@@ -263,9 +263,93 @@ function sessionView(csvString, response){
 	response.end(JSON.stringify(result, null, ppSpace));
 }
 
+function ExICSView(csvString, response){
+	var lines = csvString.replace(/\n%/g, '\n').replace(/\n$|^%/g, '').split("\n");
+
+	var result = {};
+
+	result['dateProduced'] = lines[0].match(/\w{3}\s\w{3}\s+\d+\s\d+:\d+:\d+\s\w{3}\s\d{4}/)[0];
+
+	result['examPeriod'] = lines[1].match(/\d{4}-\d{4}/)[0];
+
+	result['view'] = "ExICS"
+
+	result['exams'] = [];
+
+	var examYears = lines[1].match(/\d{4}-\d{4}/)[0].split("-");
+
+	var headers = lines[3].split("\t");
+
+	var datePosition = null;
+	var timePosition = null;
+
+	for (var i = 0; i < headers.length; i++){
+		if (headers[i].toLowerCase() == "date"){
+			datePosition = i;
+		} else if (headers[i].toLowerCase() == "time"){
+			timePosition = i;
+		}
+		if (datePosition != null && timePosition != null){
+			break;
+		}
+	}
+
+	for(var i = 4; i < lines.length; i++){
+		var currentExamLine = lines[i].split("\t");
+
+		var examDate = currentExamLine[datePosition];
+		var examTime = currentExamLine[timePosition];
+
+		examObj = {};
+
+		for (var j = 0; j < headers.length; j++){
+			if (j != datePosition && j != timePosition){
+				if(headers[j].toLowerCase() === "room"){
+					var allRooms = currentExamLine[j].split("+");
+					if (allRooms.length > 1){
+						examObj[headers[j]] = [];
+						for (var room = 0; room < allRooms.length; room++){
+							examObj[headers[j]].push(allRooms[room]);
+						}
+					} else {
+						examObj[headers[j]] = currentExamLine[j];
+					}
+				} else if (headers[j].toLowerCase() === "exam/subexam"){
+					var allExams = currentExamLine[j].split("=");
+					if (allExams.length > 1){
+						examObj[headers[j]] = [];
+						for (var exam = 0; exam < allExams.length; exam++){
+							examObj[headers[j]].push(allExams[exam]);
+						}
+					} else {
+						examObj[headers[j]] = currentExamLine[j];
+					}
+				} else {
+					examObj[headers[j]] = currentExamLine[j];
+				}
+			}
+		}
+
+		var examDateTime = new Date(Date.parse(examTime + " " + examDate.split("-").reverse().join(' ') + " " + examYears[0]));
+
+		if (examDateTime.getMonth() <  9){
+			examDateTime.setFullYear(examYears[1]);
+		}
+
+		examObj[headers[datePosition]] = examDateTime.toJSON();
+
+		result['exams'].push(examObj);
+		
+	}
+
+	response.writeHead(200, http.STATUS_CODES[200], {'Content-Type': 'application/json'});
+	response.end(JSON.stringify(result, null, ppSpace));
+}
+
 
 exports.defaultView = defaultView;
 exports.dateView = dateView;
 exports.yearGroupView = yearGroupView;
 exports.roomView = roomView;
 exports.sessionView = sessionView;
+exports.ExICSView = ExICSView;
