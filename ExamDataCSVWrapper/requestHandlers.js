@@ -21,6 +21,7 @@ function examData(query, auth, clientResponse){
   	converters['room'] = csvConvert.roomView;
   	converters['session'] = csvConvert.sessionView;
   	converters['exics'] = csvConvert.ExICSView;
+  	converters['exicsAdvanced'] = csvConvert.ExICSAdvancedView;
 
 	request(
     {
@@ -34,12 +35,28 @@ function examData(query, auth, clientResponse){
         if (!error && response.statusCode == 200) {
   			if ('view' in query){
   				if(typeof converters[query['view']] === 'function'){
-  					converters[query['view']](body, clientResponse);
-  				} else {
+  					if(query['view'] === "exics"){
+	  					if('sessionStart' in query){
+	  						if('sessionEnd' in query){
+	  							converters['exicsAdvanced'](body, clientResponse, query['sessionStart'], query['sessionEnd']);
+	  						} else {
+	  							converters['exicsAdvanced'](body, clientResponse, query['sessionStart'], new Date(8640000000000000).toJSON());
+	  						}
+	  					} else {
+	  						if ('sessionEnd' in query){
+	  							converters['exicsAdvanced'](body, clientResponse, new Date(-8640000000000000).toJSON(), query['sessionEnd']);
+	  						} else {
+	  							converters[query['view']](body, clientResponse)
+	  						}
+	  					}
+	  				} else {
+  						converters[query['view']](body, clientResponse)
+  					}
+	  			} else {
   					converters['default'](body, clientResponse);
   				}
   			} else {
-  				converters['default'](body, clientResponse);
+				converters['default'](body, clientResponse);
   			}
   		} else {
   			console.log(error);

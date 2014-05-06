@@ -108,5 +108,11 @@ Room</pre>
 			?view=exics</p>
 		<p>
 			This view is different to the others in the data it provides.  It returns a date in JSON Zulu time, as well as splitting the rooms and exam module codes into JSON arrays for use in parsing by the ExICS system.</p>
+
+		<p>
+			?view=exics&sessionStart=2013-03-18T13%3A30%3A00.000Z&sessionEnd=2013-03-18T16%3A00%3A00.000Z</p>
+
+		<p>
+			Additional parameters, sessionStart, and sessionEnd can also be passed in the API call, and the API will only return those exams with a scheduled START date and time within the bounds of the defined session.  If only one is passed, the other will default to either the beginning, or end, or representable time.</p>
 	</body>
 </html>
