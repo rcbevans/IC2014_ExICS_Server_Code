@@ -1,0 +1,87 @@
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+		<h1>
+			Seating Plan Data API</h1>
+		<h2>
+			What Is This?</h2>
+		<p>
+			This API has been written to provide an easy to use JSON data source for the exam Seating Plans.</p>
+		<p>
+			The API is available at&nbsp;<a href="http://146.169.44.162:8080/seatingPlan" target="_blank">http://146.169.44.162:8080/seatingPlan</a>&nbsp;or&nbsp;<a href="https://146.169.44.162:8443/seatingPlan">https://146.169.44.162:8443/seatingPlan</a>&nbsp;for the HTTPS version.</p>
+		<h2>
+			Returned Data Format</h2>
+		<p>
+			This API returns JSON data for ease of use. &nbsp;The returned data contains the following standard information:</p>
+		<ul>
+			<li>
+				dateProduced - the date the original csv data was produced</li>
+			<li>
+				sessionStart - the beginning of the period of time seating information is within</li>
+			<li>
+				sessionEnd- the end of the period of time seating information is within</li>
+			<li>
+				{seating_plans} - this element contains the representation of the exam data according to the view requested. &nbsp;The value of data keys will be explained in the section below. &nbsp;To explain, x : y is data with x as the key, y as the data. &nbsp;[] represents an array of JSON objects, and {x : y, a : b} &nbsp;represents a JSON object containing two keys, x and a, which have values y and b respectively. &nbsp;$key means that there will be an arbitrary number of keys contained in the object, populated by the data itself; &nbsp;these can be iterated over in the receiveing code. &nbsp;key represents the nature of the data making up the key. &nbsp;This data is returned grouped by date, then room.</li>
+		</ul>
+		<p>
+			All exams are represented with the headers from the original CSV data:</p>
+		<ul>
+			<li>
+				<pre style="word-wrap: break-word; white-space: pre-wrap;">
+				Date</pre>
+			</li>
+			<li>
+				<pre style="word-wrap: break-word; white-space: pre-wrap;">
+				Time</pre>
+			</li>
+			<li>
+				<pre style="word-wrap: break-word; white-space: pre-wrap;">
+				Room(s)</pre>
+			</li>
+			<li>
+				<pre style="word-wrap: break-word; white-space: pre-wrap;">
+				Course</pre>
+			</li>
+			<li>
+				<pre style="word-wrap: break-word; white-space: pre-wrap;">
+				Class</pre>
+			</li>
+			<li>
+				<pre style="word-wrap: break-word; white-space: pre-wrap;">
+				Seat</pre>
+			</li>
+			<li>
+				<pre style="word-wrap: break-word; white-space: pre-wrap;">
+				CID</pre>
+			</li>
+		</ul>
+		<h2>
+			API Parameters</h2>
+		<h3>
+			SessionStart/SessionEnd</h3>
+		<p>
+			?sessionStart=2014-03-18T00%3A00%3A00.000Z&amp;sessionEnd=2014-04-29T15%3A30%3A00.000Z</p>
+		<p>
+			SessionStart/SessionEnd is a JSON (ISO8601) formatted dateTime string. &nbsp;These parameters allow the specification of a session windows which only seating information within this window will be returned.</p>
+		<p>
+			These variables default to the earliest and latest representable times possible if left unspecified, encapsulating any seating information possible in the original data source.</p>
+		<h3>
+			Room</h3>
+		<p>
+			?room=344</p>
+		<p>
+			The room parameter allows specification of a room causing only seating information for those taking their exam in this room to be returned.</p>
+		<h3>
+			Course</h3>
+		<p>
+			?course=c350</p>
+		<p>
+			The course parameter allows specification of a course causing only seating information for those sitting this module to be returned.</p>
+		<h2>
+			Other Information</h2>
+		<p>
+			These API parameters can be combined in any conbination to filter and select specific seating information from the original source. &nbsp;If no parameters are specified, all will assume default values to show all original data from the source.</p>
+	</body>
+</html>

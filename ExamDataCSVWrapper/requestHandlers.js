@@ -2,6 +2,7 @@ var request = require('request'),
 	http = require('http'),
 	fs = require('fs'),
 	csvConvert = require('./csvConvert'),
+	ppSpace = 2,
     csvURL = "https://146.169.13.35/prog/ttformjw03.cgi";
     //csvURL = "https://exams.doc.ic.ac.uk/prog/ttformjw03.cgi";
 
@@ -21,7 +22,6 @@ function examData(query, auth, clientResponse){
   	converters['room'] = csvConvert.roomView;
   	converters['session'] = csvConvert.sessionView;
   	converters['exics'] = csvConvert.ExICSView;
-  	converters['exicsAdvanced'] = csvConvert.ExICSAdvancedView;
 
 	request(
     {
@@ -36,19 +36,7 @@ function examData(query, auth, clientResponse){
   			if ('view' in query){
   				if(typeof converters[query['view']] === 'function'){
   					if(query['view'] === "exics"){
-	  					if('sessionStart' in query){
-	  						if('sessionEnd' in query){
-	  							converters['exicsAdvanced'](body, clientResponse, query['sessionStart'], query['sessionEnd']);
-	  						} else {
-	  							converters['exicsAdvanced'](body, clientResponse, query['sessionStart'], new Date(8640000000000000).toJSON());
-	  						}
-	  					} else {
-	  						if ('sessionEnd' in query){
-	  							converters['exicsAdvanced'](body, clientResponse, new Date(-8640000000000000).toJSON(), query['sessionEnd']);
-	  						} else {
-	  							converters[query['view']](body, clientResponse)
-	  						}
-	  					}
+						converters[query['view']](body, clientResponse, query['sessionStart'], query['sessionEnd']);
 	  				} else {
   						converters[query['view']](body, clientResponse)
   					}
@@ -67,7 +55,7 @@ function examData(query, auth, clientResponse){
     });
 }
 
-function apiDoc(query, auth, clientResponse){
+function examDataAPIDoc(query, auth, clientResponse){
 	request(
     {
         url : csvURL,
@@ -78,8 +66,7 @@ function apiDoc(query, auth, clientResponse){
     },
     function (error, response, body) {
         if (!error && response.statusCode == 200) {
-
-  			fs.readFile('./apiDoc.html', function (err, html) {
+  			fs.readFile('./examDataAPIDoc.html', function (err, html) {
 				if (err) {
         			throw err; 
     			}
@@ -87,7 +74,65 @@ function apiDoc(query, auth, clientResponse){
         		clientResponse.write(html);  
         		clientResponse.end(); 
   			});
-  			
+  		} else {
+  			console.log(error);
+  			clientResponse.writeHead(403, http.STATUS_CODES[403]);
+  			clientResponse.write("NOT AUTHORIZED!");
+			clientResponse.end();
+  		}
+    });
+}
+
+function seatingPlan(query, auth, clientResponse){
+
+	var converters = {};
+	converters['SeatingPlanView'] = csvConvert.SeatingPlanView;
+
+	request(
+    {
+        url : csvURL,
+        headers : {
+            "Authorization" : auth
+        },
+        strictSSL : false
+    },
+    function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+        	fs.readFile('./Seating Plan/seatingPlan.csv', function (err, dataBuffer) {
+				if (err) {
+        			throw err; 
+    			}
+    			var data = dataBuffer.toString();
+				converters['SeatingPlanView'](data, clientResponse, query['sessionStart'], query['sessionEnd'], query['room'], query['course']);
+  			});
+        }  else {
+  			console.log(error);
+  			clientResponse.writeHead(403, http.STATUS_CODES[403]);
+  			clientResponse.write("NOT AUTHORIZED!");
+			clientResponse.end();
+  		}
+    });
+}
+
+function seatingPlanAPIDoc(query, auth, clientResponse){
+	request(
+    {
+        url : csvURL,
+        headers : {
+            "Authorization" : auth
+        },
+        strictSSL : false
+    },
+    function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+  			fs.readFile('./seatingPlanAPIDoc.html', function (err, html) {
+				if (err) {
+        			throw err; 
+    			}
+    			clientResponse.writeHeader(200, http.STATUS_CODES[200], {"Content-Type": "text/html"});  
+        		clientResponse.write(html);  
+        		clientResponse.end(); 
+  			});
   		} else {
   			console.log(error);
   			clientResponse.writeHead(403, http.STATUS_CODES[403]);
@@ -99,4 +144,6 @@ function apiDoc(query, auth, clientResponse){
 
 exports.redirect = redirect;
 exports.examData = examData;
-exports.apiDoc = apiDoc;
+exports.examDataAPIDoc = examDataAPIDoc;
+exports.seatingPlan = seatingPlan;
+exports.seatingPlanAPIDoc = seatingPlanAPIDoc;
