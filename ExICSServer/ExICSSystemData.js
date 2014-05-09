@@ -52,7 +52,7 @@ var ExICSData = (function () {
 
 		numClientsAuthenticated: function numClientsAuthenticated(){
 			return connectedClients.length;
-		}
+		},
 
 		sendToAllClients: function sendToAllClients(data){
 			for (var i = 0; i < connectedClients.length; i++) {
