@@ -1,9 +1,8 @@
 // WS Callbacks
 var ExICSData = require('./ExICSSystemData').ExICSData;
-var wsEventCallbacks = require('./wsEventCallbacks');
 var serverUtils = require('./serverUtils');
 var ldapAuthenticate = require('./ldapAuth').authenticate;
-var MSG_TYPE = require('./protocolParameters').MSG_TYPE;
+var PACKET_TYPE = require('./protocolParameters').PACKET_TYPE;
 
 function onConnection(socket){
 
@@ -17,39 +16,60 @@ function onConnection(socket){
 	function onMessage(data, flags) {
 		try {
 			var parsedMessage = JSON.parse(data.toString());
-			switch (parseInt(parsedMessage["header"]["type"])) {
-				case MSG_TYPE.PROTOCOL_HANDSHAKE:
-					serverUtils.log("Received protocol handshake from user " + parsedMessage["header"]["sender"]);
-					ldapAuthenticate(parsedMessage["payload"]["username"], parsedMessage["payload"]["password"], completeAuth);
-					break;
+			if(!auth){
+				switch (parseInt(parsedMessage["header"]["type"])) {
+					case PACKET_TYPE.PROTOCOL_HANDSHAKE:
+						serverUtils.log("Received protocol handshake from user " + parsedMessage["payload"]["username"]);
+						ldapAuthenticate(parsedMessage["payload"]["username"], parsedMessage["payload"]["password"], completeAuth);
+						break;
 
-				case MSG_TYPE.SEND_MESSAGE:
-					if (!auth) {
-						closeSocket(parsedMessage["header"]["sender"]);
-					} else {
-						serverUtils.log("Received Send Message Response From User %s", username);
-						if (parsedMessage["header"]["receiver"] === "") {
-							systemData.sendToAllClients(data);
-						} else {
-							systemData.sendToClient(parsedMessage["header"]["receiver"], data, function(){
-								systemData.sendFailure(socket, parsedMessage);
-							});
-						}
+					case PACKET_TYPE.TERMINATE_CONNECTION:
+						serverUtils.log("Received request to disconnect from user " + parsedMessage["header"]["sender"]);
+						break;
+
+					default:
+						serverUtils.log("Unauthorised User Sent Non Handshake Request, Closing Connection");
+						socket.close();
+						break;
+				}
+			} else {
+				if(!(parsedMessage["header"]["sender"] === username)){
+					serverUtils.log("Message Received from User " + parsedMessage["header"]["sender"] + " Does not Match Authenticated Username " + username);
+					socket.close();
+				} else {
+					switch (parseInt(parsedMessage["header"]["type"])) {
+						case PACKET_TYPE.SYSTEM_STATE:
+							serverUtils.log("Received request for Current System State from " + username);
+							systemData.pushSystemState(socket);
+							break;
+
+						case PACKET_TYPE.CHANGE_ROOM:
+							console.log("I'm Here", parsedMessage);
+							systemData.changeRoom(username, parsedMessage["payload"]["room"]);
+							break;
+
+						case PACKET_TYPE.SEND_MESSAGE:
+							serverUtils.log("Received Send Message Response From User " + username);
+							if (parsedMessage["header"]["receiver"] === "") {
+								systemData.sendToAllClients(username, data);
+							} else {
+								systemData.sendToClient(parsedMessage["header"]["receiver"], data, function(){
+									systemData.sendMessageFailure(socket, parsedMessage, "Failed to send message to " + parsedMessage["header"]["receiver"]);
+								});
+							}
+							break;
+
+						case PACKET_TYPE.TERMINATE_CONNECTION:
+							serverUtils.log("Received request to disconnect from user " + username)
+							socket.close();
+							break;
+
+						default:
+							serverUtils.log("Unknown Message type Received, closing socket");
+							socket.close();
+							break;
 					}
-					break;
-
-				case MSG_TYPE.TERMINATE_CONNECTION:
-					serverUtils.log("Received request to disconnect from user %s", parsedMessage["header"]["sender"]);
-					socket.close();
-					systemsystemData.clientDisconnected();
-					break;
-
-				default:
-					serverUtils.log("Unknown Message type Received, closing socket");
-					socket.close();
-					counter--;
-					serverUtils.log("We now have %d users", counter);
-					break;
+				}
 			}
 		} catch (e) {
 			serverUtils.log("An error has occurred parsing message: " + data);
@@ -60,28 +80,23 @@ function onConnection(socket){
 	function onClose(code, message) {
 		if (auth) {
 			systemData.removeClient(socket);
-			systemData.clientDisconnected();
-		} else {
-			systemData.clientDisconnected();
 		}
+		systemData.clientDisconnected();
 	}
-
-	function closeSocket(uname) {
-		if (username != "")
-			serverUtils.log("User " + username + " was not authorised, terminating connection");
-		else
-			serverUtils.log("User was not authorised, terminating connection");
-		socket.close();
-	}
-
 
 	function completeAuth(uname, success) {
 		if (success) {
-			systemData.addClient(socket, uname);
-			username = uname;
-			auth = true;
-			serverUtils.log("Successfully authenticated user " + uname);
-			systemData.sendSuccess(socket, uname);
+			systemData.addClient(socket, uname, function(success){
+				if(!success){
+					serverUtils.log("User " + uname + " is already connected, closing latest connection");
+					socket.close();
+				} else {
+					username = uname;
+					auth = true;
+					serverUtils.log("Successfully authenticated user " + uname);
+					systemData.synchronizeServerState(socket);
+				}
+			});
 		} else {
 			serverUtils.log("Disconnecting user " + uname + " as authentication failed");
 			socket.close();
