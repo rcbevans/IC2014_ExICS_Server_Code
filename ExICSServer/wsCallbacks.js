@@ -25,6 +25,7 @@ function onConnection(socket){
 
 					case PACKET_TYPE.TERMINATE_CONNECTION:
 						serverUtils.log("Received request to disconnect from user " + parsedMessage["header"]["sender"]);
+						socket.close();
 						break;
 
 					default:
@@ -44,8 +45,36 @@ function onConnection(socket){
 							break;
 
 						case PACKET_TYPE.CHANGE_ROOM:
-							console.log("I'm Here", parsedMessage);
+							serverUtils.log("Received Change Room Request from User " + username + " to room " + parsedMessage["payload"]["room"]);
 							systemData.changeRoom(username, parsedMessage["payload"]["room"]);
+							break;
+
+						case PACKET_TYPE.EXAM_START:
+							serverUtils.log("Received Request from User " + username + " to Start Exam " + parsedMessage['payload']['exam'] + " in room " + parsedMessage['payload']['room']);
+							systemData.startExam(parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
+								systemData.sendFailure(socket, username, "Failed to start exam " + parsedMessage['payload']['exam']);
+							});
+							break;
+
+						case PACKET_TYPE.EXAM_PAUSE:
+							serverUtils.log("Received Request from User " + username + " to Pause Exam " + parsedMessage['payload']['exam'] + " in room " + parsedMessage['payload']['room']);
+							systemData.pauseExam(parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
+								systemData.sendFailure(socket, username, "Failed to pause exam " + parsedMessage['payload']['exam']);
+							});
+							break;
+
+						case PACKET_TYPE.EXAM_STOP:
+							serverUtils.log("Received Request from User " + username + " to Stop Exam " + parsedMessage['payload']['exam'] + " in room " + parsedMessage['payload']['room']);
+							systemData.stopExam(parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
+								systemData.sendFailure(socket, username, "Failed to stop exam " + parsedMessage['payload']['exam']);
+							});
+							break;
+
+						case PACKET_TYPE.EXAM_XTIME:
+							serverUtils.log("Received Request from User " + username + " to Add " + parsedMessage['payload']['time'] + " Minutes to Exam " + parsedMessage['payload']['exam'] + " in room " + parsedMessage['payload']['room']);
+							systemData.xtimeExam(parsedMessage['payload']['room'], parsedMessage['payload']['exam'], parsedMessage['payload']['time'], function(){
+								systemData.sendFailure(socket, username, "Failed to add extra time to exam " + parsedMessage['payload']['exam']);
+							});
 							break;
 
 						case PACKET_TYPE.SEND_MESSAGE:
@@ -60,7 +89,7 @@ function onConnection(socket){
 							break;
 
 						case PACKET_TYPE.TERMINATE_CONNECTION:
-							serverUtils.log("Received request to disconnect from user " + username)
+							serverUtils.log("Received request to disconnect from user " + username);
 							socket.close();
 							break;
 
@@ -74,12 +103,14 @@ function onConnection(socket){
 		} catch (e) {
 			serverUtils.log("An error has occurred parsing message: " + data);
 			serverUtils.log("Error: " + e.toString());
+			systemData.sendFailure(socket, username, "An error has occurred parsing message: " + data);
 		}
 	}
 
 	function onClose(code, message) {
 		if (auth) {
-			systemData.removeClient(socket);
+			serverUtils.log(username + " Socket Closed, Removing From Connected Clients");
+			systemData.removeClient(username, socket);
 		}
 		systemData.clientDisconnected();
 	}

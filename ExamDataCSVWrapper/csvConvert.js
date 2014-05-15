@@ -323,15 +323,15 @@ function ExICSView(csvString, response, sessionStart, sessionEnd){
 						examObj[headers[j]] = currentExamLine[j];
 					}
 				} else if (headers[j].toLowerCase() === "exam/subexam"){
-					var allExams = currentExamLine[j].split("=");
-					if (allExams.length > 1){
-						examObj[headers[j]] = [];
-						for (var exam = 0; exam < allExams.length; exam++){
-							examObj[headers[j]].push(allExams[exam]);
-						}
-					} else {
+					// var allExams = currentExamLine[j].split("=");
+					// if (allExams.length > 1){
+					// 	examObj[headers[j]] = [];
+					// 	for (var exam = 0; exam < allExams.length; exam++){
+					// 		examObj[headers[j]].push(allExams[exam]);
+					// 	}
+					// } else {
 						examObj[headers[j]] = currentExamLine[j];
-					}
+					// }
 				} else {
 					examObj[headers[j]] = currentExamLine[j];
 				}

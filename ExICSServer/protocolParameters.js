@@ -13,7 +13,7 @@ var PACKET_TYPE = {
 	SEND_MESSAGE: 9,
 	SUCCESS: 69,
 	FAILURE: -1,
-	TERMINATE_CONNECTION: -3
+	TERMINATE_CONNECTION: -2
 };
 
 /*
@@ -39,12 +39,12 @@ payload
   username = uname
   room = room
 
-header 								header
-  type = SYSTEM_STATE (3)			  type = SYSTEM_STATE
-  sender = username 				  sender = 'SYS'
-  									payload
-  									  users = []
-  									  exams = {}
+header 								       header
+  type = SYSTEM_STATE (3)		   type = SYSTEM_STATE
+  sender = username 				   sender = 'SYS'
+  									         payload
+  									           users = []
+  									           exams = {}
 
 header
   type = CHANGE_ROOM (4)
@@ -101,6 +101,10 @@ header
   receiver = original receiver
 payload = original payload
   reason = reason
+
+header
+  type = TERMINATE_CONNECTION (-2)
+  sender = 'username'
 
 
 */

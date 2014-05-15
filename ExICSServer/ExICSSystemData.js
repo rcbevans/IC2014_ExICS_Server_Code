@@ -113,8 +113,8 @@ var ExICSData = (function () {
 	}
 
     return {
-      // Public methods and variables
-      clientConnected: function clientConnected(){
+      	// Public methods and variables
+      	clientConnected: function clientConnected(){
 			connectedClientsCounter++;
 			serverUtils.log("New Client Connected.  We now have " + connectedClientsCounter + " clients");
 		},
@@ -149,18 +149,101 @@ var ExICSData = (function () {
 			this.printClients();
 		},
 
-		removeClient: function removeClient(wsSocket){
+		removeClient: function removeClient(username, wsSocket){
 			var uname = "";
 			var room = "";
-			for (var client in connectedClients){
-				if ((connectedClients.hasOwnProperty(client)) && (connectedClients[client] === wsSocket)){
-					uname = client;
-					room = connectedClients[client]['Room'];
-					delete connectedClients[client];
-				}
+			if(connectedClients.hasOwnProperty(username) && connectedClients[username]['Socket'] === wsSocket){
+				serverUtils.log("Successfully Removed " + username);
+				delete connectedClients[username];
 			}
 			broadcastDisconnected(uname, room);
 			this.printClients();
+		},
+
+		startExam: function startExam(room, exam, failure){
+			if(currentExams.hasOwnProperty(room)){
+				var found = false;
+				for(var i = 0; i < currentExams[room].length; i++){
+					if(currentExams[room][i]['Exam/Subexam'] === exam){
+						found = true;
+						currentExams[room][i]['Running'] = true;
+						currentExams[room][i]['Start'] = new Date().toJSON();
+						serverUtils.log("Successfully started exam " + exam + " in room " + room);
+						break;
+					}
+				}
+				if(found){
+					this.pushSystemStateAllClients();
+				} else {
+					failure();
+				}
+			} else {
+				failure();
+			}
+		},
+
+		pauseExam: function pauseExam(room, exam, failure){
+			if(currentExams.hasOwnProperty(room)){
+				var found = false;
+				for(var i = 0; i < currentExams[room].length; i++){
+					if(currentExams[room][i]['Exam/Subexam'] === exam){
+						found = true;
+						currentExams[room][i]['Running'] = false;
+						serverUtils.log("Successfully paused exam " + exam + " in room " + room);
+						break;
+					}
+				}
+				if(found){
+					this.pushSystemStateAllClients();
+				} else {
+					failure();
+				}
+			} else {
+				failure();
+			}
+		},
+
+		stopExam: function stopExam(room, exam, failure){
+			if(currentExams.hasOwnProperty(room)){
+				var found = false;
+				for(var i = 0; i < currentExams[room].length; i++){
+					if(currentExams[room][i]['Exam/Subexam'] === exam){
+						found = true;
+						currentExams[room][i]['Running'] = false;
+						currentExams[room][i]['Finish'] = new Date().toJSON(); 
+						serverUtils.log("Successfully stopped exam " + exam + " in room " + room);
+						break;
+					}
+				}
+				if(found){
+					this.pushSystemStateAllClients();
+				} else {
+					failure();
+				}
+			} else {
+				failure();
+			}
+		},
+
+		xtimeExam: function xtimeExam(room, exam, time, failure){
+			if(currentExams.hasOwnProperty(room)){
+				var found = false;
+				for(var i = 0; i < currentExams[room].length; i++){
+					if(currentExams[room][i]['Exam/Subexam'] === exam){
+						found = true;
+						currentExams[room][i]['xTime'] = +currentExams[room][i]['xTime'] + +time;
+						serverUtils.log("Successfully extended time in exam " + exam + ", room " + room + " by " + time + " to " + currentExams[room][i]['xTime']);
+						break;
+					}
+				}
+				if(found){
+					this.pushSystemStateAllClients();
+				} else {
+					failure();
+				}
+			} else {
+				failure();
+			}
 		},
 
 		printClients: function printClients(){
@@ -334,6 +417,32 @@ var ExICSData = (function () {
 
 		getCurrentExams: function getCurrentExams(){
 			return currentExams;
+		},
+
+		pushSystemStateAllClients: function pushSystemStateAllClients(){
+			while(syncLock){};
+
+			var response = {};
+			response['header'] = {};
+			response['header']['type'] = PACKET_TYPE.SYSTEM_STATE;
+			response['header']['sender'] = 'SYS';
+			response['payload'] = {}
+			response['payload']['users'] = [];
+			for (var user in connectedClients){
+				if(connectedClients.hasOwnProperty(user)){
+					User = {}
+					User['name'] = user;
+					User['room'] = connectedClients[user]['Room'];
+					response['payload']['users'].push(User);
+				}
+			}
+			response['payload']['exams'] = currentExams;
+
+			for (var client in connectedClients){
+				if(connectedClients.hasOwnProperty(client)){
+					connectedClients[client]['Socket'].send(JSON.stringify(response));
+				}
+			}
 		},
 
 		pushSystemState: function pushSystemState(socket){
