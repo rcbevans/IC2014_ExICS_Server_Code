@@ -101,8 +101,9 @@ function onConnection(socket){
 				}
 			}
 		} catch (e) {
-			serverUtils.log("An error has occurred parsing message: " + data);
-			serverUtils.log("Error: " + e.toString());
+			serverUtils.log('ERROR', "An error has occurred parsing message: " + data);
+			serverUtils.log('ERROR', "Error: " + e.toString());
+			serverUtils.log('ERROR', e.stack);
 			systemData.sendFailure(socket, username, "An error has occurred parsing message: " + data);
 		}
 	}

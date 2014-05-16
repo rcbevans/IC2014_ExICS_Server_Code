@@ -2,7 +2,7 @@
 
 var ActiveDirectory = require('activedirectory');
 var ad_config = require("./AD_CONFIG");
-var serverUtils = require('./serverUtils');
+var serverUtils = require('./serverUtils').ServerUtils.getInstance();
 
 var ad = new ActiveDirectory({
 		url: ad_config.url,

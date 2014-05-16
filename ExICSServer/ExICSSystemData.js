@@ -10,6 +10,8 @@ var ExICSData = (function () {
 
     // Singleton
 
+    var serverUtils = require('./serverUtils').ServerUtils.getInstance();
+
     var syncLock = false;
 
     // Private methods and variables
@@ -98,6 +100,37 @@ var ExICSData = (function () {
 		}
 	}
 
+	broadcastExamStateChange: function broadcastExamStateChange(msgType, room, exam){
+		var msg = {};
+		msg['header'] = {};
+		msg['header']['type'] = msgType;
+		msg['header']['sender'] = 'SYS';
+		msg['payload'] = {};
+		msg['payload']['room'] = room;
+		msg['payload']['exam'] = exam;
+		for(var user in connectedClients){
+			if(connectedClients.hasOwnProperty(user)){
+				connectedClients[user]["Socket"].send(JSON.stringify(msg));
+			}
+		}
+	}
+
+	broadcastExtraTime: function broadcastExtraTime(room, exam, time){
+		var msg = {};
+		msg['header'] = {};
+		msg['header']['type'] = PACKET_TYPE.EXAM_XTIME;
+		msg['header']['sender'] = 'SYS';
+		msg['payload'] = {};
+		msg['payload']['room'] = room;
+		msg['payload']['exam'] = exam;
+		msg['payload']['time'] = time;
+		for(var user in connectedClients){
+			if(connectedClients.hasOwnProperty(user)){
+				connectedClients[user]["Socket"].send(JSON.stringify(msg));
+			}
+		}
+	}
+
 	broadcastDisconnected: function broadcastDisconnected(username){
 		var msg = {};
 		msg['header'] = {};
@@ -173,6 +206,7 @@ var ExICSData = (function () {
 					}
 				}
 				if(found){
+					this.broadcastExamStateChange(PACKET_TYPE.EXAM_START, room, exam);
 					this.pushSystemStateAllClients();
 				} else {
 					failure();
@@ -194,6 +228,7 @@ var ExICSData = (function () {
 					}
 				}
 				if(found){
+					this.broadcastExamStateChange(PACKET_TYPE.EXAM_PAUSE, room, exam);
 					this.pushSystemStateAllClients();
 				} else {
 					failure();
@@ -216,6 +251,7 @@ var ExICSData = (function () {
 					}
 				}
 				if(found){
+					this.broadcastExamStateChange(PACKET_TYPE.EXAM_STOP, room, exam);
 					this.pushSystemStateAllClients();
 				} else {
 					failure();
@@ -237,6 +273,7 @@ var ExICSData = (function () {
 					}
 				}
 				if(found){
+					this.broadcastExtraTime(room, exam, time);
 					this.pushSystemStateAllClients();
 				} else {
 					failure();
