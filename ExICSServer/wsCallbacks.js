@@ -1,6 +1,6 @@
 // WS Callbacks
 var ExICSData = require('./ExICSSystemData').ExICSData;
-var serverUtils = require('./serverUtils');
+var serverUtils = require('./serverUtils').ServerUtils.getInstance();
 var ldapAuthenticate = require('./ldapAuth').authenticate;
 var PACKET_TYPE = require('./protocolParameters').PACKET_TYPE;
 
