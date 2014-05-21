@@ -333,6 +333,17 @@ var ExICSData = (function () {
 			socket.send(JSON.stringify(response));
 		},
 
+		sendAuthSuccess: function sendAuthSuccess(socket, username){
+			serverUtils.log("Sending Auth Success to Client" + username);
+			var response = {};
+			response["header"] = {};
+			response["header"]["type"] = PACKET_TYPE.PROTOCOL_HANDSHAKE;
+			response["header"]["sender"] = 'SYS';
+			response["payload"] = {};
+			response["payload"]["message"] = "Authorisation Successful";
+			socket.send(JSON.stringify(response));
+		},
+
 		sendMessageFailure: function sendMessageFailure(socket, parsedMessage, reason){
 			serverUtils.log("Sending failure message to client " + uname);
 			var response = {};
