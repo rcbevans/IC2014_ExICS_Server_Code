@@ -63,11 +63,11 @@ var ExICSData = (function () {
 	getMockTime: function getMockTime(){
 		var mockDate = new Date();
 		mockDate.setFullYear(2013);
-		mockDate.setMonth(3);
-		mockDate.setDate(29);
-		mockDate.setHours(1);
-		mockDate.setMinutes(35);
-		mockDate.setSeconds(0);
+		mockDate.setMonth(4);
+		mockDate.setDate(2);
+		mockDate.setHours(9);
+		mockDate.setMinutes(27);
+		mockDate.setSeconds(35);
 		return mockDate;
 	}
 
@@ -80,7 +80,7 @@ var ExICSData = (function () {
 		msg['payload']['username'] = username;
 		for(var user in connectedClients){
 			if(connectedClients.hasOwnProperty(user) && !(user === username)){
-				connectedClients[user]["Socket"].send(JSON.stringify(msg));
+				connectedClients[user]['socket'].send(JSON.stringify(msg));
 			}
 		}
 	}
@@ -92,25 +92,26 @@ var ExICSData = (function () {
 		msg['header']['sender'] = 'SYS';
 		msg['payload'] = {};
 		msg['payload']['username'] = username;
-		msg['payload']['room'] = newRoom;
+		msg['payload']["room"] = newRoom;
 		for(var user in connectedClients){
 			if(connectedClients.hasOwnProperty(user) && !(user === username)){
-				connectedClients[user]["Socket"].send(JSON.stringify(msg));
+				connectedClients[user]['socket'].send(JSON.stringify(msg));
 			}
 		}
 	}
 
-	broadcastExamStateChange: function broadcastExamStateChange(msgType, room, exam){
+	broadcastExamStateChange: function broadcastExamStateChange(msgType, room, exam, user){
 		var msg = {};
 		msg['header'] = {};
 		msg['header']['type'] = msgType;
 		msg['header']['sender'] = 'SYS';
 		msg['payload'] = {};
-		msg['payload']['room'] = room;
+		msg['payload']["room"] = room;
 		msg['payload']['exam'] = exam;
+		msg['payload']['username'] = user;
 		for(var user in connectedClients){
 			if(connectedClients.hasOwnProperty(user)){
-				connectedClients[user]["Socket"].send(JSON.stringify(msg));
+				connectedClients[user]['socket'].send(JSON.stringify(msg));
 			}
 		}
 	}
@@ -126,7 +127,7 @@ var ExICSData = (function () {
 		msg['payload']['time'] = time;
 		for(var user in connectedClients){
 			if(connectedClients.hasOwnProperty(user)){
-				connectedClients[user]["Socket"].send(JSON.stringify(msg));
+				connectedClients[user]['socket'].send(JSON.stringify(msg));
 			}
 		}
 	}
@@ -140,7 +141,7 @@ var ExICSData = (function () {
 		msg['payload']['username'] = username;
 		for(var user in connectedClients){
 			if(connectedClients.hasOwnProperty(user) && !(user === username)){
-				connectedClients[user]["Socket"].send(JSON.stringify(msg));
+				connectedClients[user]['socket'].send(JSON.stringify(msg));
 			}
 		}
 	}
@@ -164,8 +165,8 @@ var ExICSData = (function () {
 		addClient: function addClient(wsSocket, username, callback){
 			if(!(connectedClients.hasOwnProperty(username))){
 				connectedClients[username] = {};
-				connectedClients[username]["Socket"] = wsSocket;
-				connectedClients[username]["Room"] = -1;
+				connectedClients[username]['socket'] = wsSocket;
+				connectedClients[username]["room"] = -1;
 				callback(true);
 			} else {
 				callback(false);
@@ -176,16 +177,16 @@ var ExICSData = (function () {
 
 		changeRoom: function changeRoom(username, newRoom){
 			if(connectedClients.hasOwnProperty(username)){
-				connectedClients[username]["Room"] = newRoom;
+				connectedClients[username]["room"] = newRoom;
 			}
-			broadcastRoomChange(username, room);
+			broadcastRoomChange(username, newRoom);
 			this.printClients();
 		},
 
 		removeClient: function removeClient(username, wsSocket){
 			var uname = "";
 			var room = "";
-			if(connectedClients.hasOwnProperty(username) && connectedClients[username]['Socket'] === wsSocket){
+			if(connectedClients.hasOwnProperty(username) && connectedClients[username]['socket'] === wsSocket){
 				serverUtils.log("Successfully Removed " + username);
 				delete connectedClients[username];
 			}
@@ -193,21 +194,21 @@ var ExICSData = (function () {
 			this.printClients();
 		},
 
-		startExam: function startExam(room, exam, failure){
+		startExam: function startExam(username, room, exam, failure){
 			if(currentExams.hasOwnProperty(room)){
 				var found = false;
 				for(var i = 0; i < currentExams[room].length; i++){
-					if(currentExams[room][i]['Exam/Subexam'] === exam){
+					if(currentExams[room][i]["exam/subexam"] === exam){
 						found = true;
-						currentExams[room][i]['Running'] = true;
-						currentExams[room][i]['Start'] = new Date().toJSON();
-						serverUtils.log("Successfully started exam " + exam + " in room " + room);
+						currentExams[room][i]["running"] = true;
+						currentExams[room][i]["start"] = new Date().toJSON();
+						serverUtils.log(username + " started exam " + exam + " in room " + room);
 						break;
 					}
 				}
 				if(found){
-					this.broadcastExamStateChange(PACKET_TYPE.EXAM_START, room, exam);
 					this.pushSystemStateAllClients();
+					broadcastExamStateChange(PACKET_TYPE.EXAM_START, room, exam, username);
 				} else {
 					failure();
 				}
@@ -216,20 +217,36 @@ var ExICSData = (function () {
 			}
 		},
 
-		pauseExam: function pauseExam(room, exam, failure){
+		pauseExam: function pauseExam(username, room, exam, failure){
 			if(currentExams.hasOwnProperty(room)){
 				var found = false;
 				for(var i = 0; i < currentExams[room].length; i++){
-					if(currentExams[room][i]['Exam/Subexam'] === exam){
-						found = true;
-						currentExams[room][i]['Running'] = false;
-						serverUtils.log("Successfully paused exam " + exam + " in room " + room);
+					if(currentExams[room][i]["exam/subexam"] === exam){
+						if(currentExams[room][i]["running"] === false){
+							serverUtils.log("ERROR", "Can't pause an exam that isn't running!");
+						} else {
+							found = true;
+							if(currentExams[room][i]["paused"] === false){
+								serverUtils.log(username + " paused exam " + exam + " in room " + room);
+								currentExams[room][i]["paused"] = true;
+								pauseResumePair = {};
+								pauseResumePair["paused"] = new Date().toJSON();
+								pauseResumePair["resumed"] = "null";
+								currentExams[room][i]["pauseTimings"].push(pauseResumePair);
+							} else {
+								serverUtils.log(username + " resumed exam " + exam + " in room " + room);
+								currentExams[room][i]["paused"] = false;
+								pauseResumePair = currentExams[room][i]["pauseTimings"][(currentExams[room][i]["pauseTimings"].length) - 1];
+								pauseResumePair["resumed"] = new Date().toJSON();
+								currentExams[room][i]["pauseTimings"][(currentExams[room][i]["pauseTimings"].length) - 1] = pauseResumePair;
+							}
+						}
 						break;
 					}
 				}
 				if(found){
-					this.broadcastExamStateChange(PACKET_TYPE.EXAM_PAUSE, room, exam);
 					this.pushSystemStateAllClients();
+					broadcastExamStateChange(PACKET_TYPE.EXAM_PAUSE, room, exam, username);
 				} else {
 					failure();
 				}
@@ -238,21 +255,31 @@ var ExICSData = (function () {
 			}
 		},
 
-		stopExam: function stopExam(room, exam, failure){
+		stopExam: function stopExam(username, room, exam, failure){
 			if(currentExams.hasOwnProperty(room)){
 				var found = false;
+				var position = 0;
 				for(var i = 0; i < currentExams[room].length; i++){
-					if(currentExams[room][i]['Exam/Subexam'] === exam){
+					if(currentExams[room][i]["exam/subexam"] === exam){
 						found = true;
-						currentExams[room][i]['Running'] = false;
-						currentExams[room][i]['Finish'] = new Date().toJSON(); 
-						serverUtils.log("Successfully stopped exam " + exam + " in room " + room);
+						position = i;
+						currentExams[room][i]["running"] = false;
+						if(currentExams[room][i]["paused"] === true){
+							currentExams[room][i]["paused"] = false;
+							pauseResumePair = currentExams[room][i]["pauseTimings"][(currentExams[room][i]["pauseTimings"].length) - 1];
+							pauseResumePair["resumed"] = new Date().toJSON();
+							currentExams[room][i]["pauseTimings"][(currentExams[room][i]["pauseTimings"].length) - 1] = pauseResumePair;
+						}
+						currentExams[room][i]["finish"] = new Date().toJSON(); 
+						serverUtils.log(username + " stopped exam " + exam + " in room " + room);
 						break;
 					}
 				}
 				if(found){
-					this.broadcastExamStateChange(PACKET_TYPE.EXAM_STOP, room, exam);
+					currentExams[room].splice(position,1);
+					serverUtils.log(exam + " in room " + room + " has been removed from the system");
 					this.pushSystemStateAllClients();
+					broadcastExamStateChange(PACKET_TYPE.EXAM_STOP, room, exam, username);
 				} else {
 					failure();
 				}
@@ -261,20 +288,20 @@ var ExICSData = (function () {
 			}
 		},
 
-		xtimeExam: function xtimeExam(room, exam, time, failure){
+		xtimeExam: function xtimeExam(username, room, exam, time, failure){
 			if(currentExams.hasOwnProperty(room)){
 				var found = false;
 				for(var i = 0; i < currentExams[room].length; i++){
-					if(currentExams[room][i]['Exam/Subexam'] === exam){
+					if(currentExams[room][i]["exam/subexam"] === exam){
 						found = true;
 						currentExams[room][i]['xTime'] = +currentExams[room][i]['xTime'] + +time;
-						serverUtils.log("Successfully extended time in exam " + exam + ", room " + room + " by " + time + " to " + currentExams[room][i]['xTime']);
+						serverUtils.log(username + " extended time in exam " + exam + ", room " + room + " by " + time + " to " + currentExams[room][i]['xTime']);
 						break;
 					}
 				}
 				if(found){
-					this.broadcastExtraTime(room, exam, time);
 					this.pushSystemStateAllClients();
+					broadcastExtraTime(room, exam, time, username);
 				} else {
 					failure();
 				}
@@ -287,7 +314,7 @@ var ExICSData = (function () {
 			var ConnectedUsers = "ConnectedUsers: ";
 			for (var client in connectedClients){
 				if(connectedClients.hasOwnProperty(client)){
-					ConnectedUsers += client + ", " + connectedClients[client]["Room"] + "; ";
+					ConnectedUsers += client + ", " + connectedClients[client]["room"] + "; ";
 				}
 			}
 			serverUtils.log(ConnectedUsers);
@@ -302,19 +329,30 @@ var ExICSData = (function () {
 		},
 
 		sendToAllClients: function sendToAllClients(username, data){
-			serverUtils.log("Sending " + data + " to all connected clients");
+			serverUtils.log("Sending " + data + " to all connected clients from " + username);
 			for (var client in connectedClients) {
 				if (connectedClients.hasOwnProperty(client) && !(client === username)){
-					connectedClients[i]["Socket"].send(data);
+					connectedClients[client]['socket'].send(data);
 				}
 			}
 		},
 
-		sendToClient: function sendToClient(username, data, failureCallback){
+		sendToAllInRoom: function sendToAllInRoom(username, room, data){
+			serverUtils.log("Sending " + data + " to all in room " + room + " from " + username);
+			for (var client in connectedClients) {
+				if (connectedClients.hasOwnProperty(client) && !(client === username)){
+					if(connectedClients[client]['room'] === room){
+						connectedClients[client]['socket'].send(data);
+					}
+				}
+			}
+		},
+
+		sendToClient: function sendToClient(username, recipient, data, failureCallback){
 			var success = false;
-			serverUtils.log("Sending " + data + " to client " + username);
-			if(connectedClients.hasOwnProperty(username)){
-				connectedClients[username]["Socket"].send(data);
+			serverUtils.log("Sending " + data + " to client " + recipient + " from " + username);
+			if(connectedClients.hasOwnProperty(recipient) && !(recipient === username)){
+				connectedClients[recipient]['socket'].send(data);
 				success = true;
 			}
 			if(!success){
@@ -334,7 +372,7 @@ var ExICSData = (function () {
 		},
 
 		sendAuthSuccess: function sendAuthSuccess(socket, username){
-			serverUtils.log("Sending Auth Success to Client" + username);
+			serverUtils.log("Sending Auth Success to Client " + username);
 			var response = {};
 			response["header"] = {};
 			response["header"]["type"] = PACKET_TYPE.PROTOCOL_HANDSHAKE;
@@ -344,7 +382,7 @@ var ExICSData = (function () {
 			socket.send(JSON.stringify(response));
 		},
 
-		sendMessageFailure: function sendMessageFailure(socket, parsedMessage, reason){
+		sendMessageFailure: function sendMessageFailure(uname, socket, parsedMessage, reason){
 			serverUtils.log("Sending failure message to client " + uname);
 			var response = {};
 			response["header"] = {};
@@ -387,6 +425,10 @@ var ExICSData = (function () {
 						var examDataURL = "https://146.169.44.162:8443/examData?view=exics&sessionStart="+s2Begin.toJSON()+"&sessionEnd="+s2End.toJSON();
 					}
 
+					serverUtils.log("DEBUG", examDataURL);
+
+					// serverUtils.log(examDataURL);
+
 					var options = {
 					    url : examDataURL,
 				        headers : {
@@ -398,6 +440,9 @@ var ExICSData = (function () {
 					request(options, function(error, response, body){
 						var ExICSData = require('./ExICSSystemData').ExICSData.getInstance();
 						if (!error && response.statusCode == 200) {
+							
+							serverUtils.log("DEBUG", body);
+
 							lastSynchronized = timeNow;
 							var examData = JSON.parse(body);
 							var exams = examData['exams'];
@@ -408,7 +453,7 @@ var ExICSData = (function () {
 								for (var prop in exams[index]){
 									if (exams[index].hasOwnProperty(prop)){
 										if(!(prop.toLowerCase() === "room")){
-											exam[prop] = exams[index][prop];
+											exam[prop.toLowerCase()] = exams[index][prop];
 										} else if (typeof exams[index][prop] === "object") {
 											for (var roomNum = 0; roomNum < exams[index][prop].length; roomNum++){
 												rooms.push(exams[index][prop][roomNum]);
@@ -418,16 +463,18 @@ var ExICSData = (function () {
 										}
 									}
 								}
-								exam["Running"] = false;
-								exam["Start"] = exam["Date"];
-								exam["Finish"] = null;
+								exam["running"] = false;
+								exam["paused"] = false;
+								exam["pauseTimings"] = [];
+								exam["start"] = "null";
+								exam["finish"] = "null";
 								exam["xTime"] = 0;
 								for (var roomNum = 0; roomNum < rooms.length; roomNum++){
 									var tempObj = JSON.parse(JSON.stringify(exam));
 									if(!(currentExams.hasOwnProperty(rooms[roomNum]))){
 										currentExams[rooms[roomNum]] = [];
 									}
-									tempObj["Room"] = rooms[roomNum];
+									tempObj["room"] = rooms[roomNum];
 									currentExams[rooms[roomNum]].push(tempObj);
 								}
 							}
@@ -480,7 +527,7 @@ var ExICSData = (function () {
 				if(connectedClients.hasOwnProperty(user)){
 					User = {}
 					User['name'] = user;
-					User['room'] = connectedClients[user]['Room'];
+					User["room"] = connectedClients[user]["room"];
 					response['payload']['users'].push(User);
 				}
 			}
@@ -488,7 +535,7 @@ var ExICSData = (function () {
 
 			for (var client in connectedClients){
 				if(connectedClients.hasOwnProperty(client)){
-					connectedClients[client]['Socket'].send(JSON.stringify(response));
+					connectedClients[client]['socket'].send(JSON.stringify(response));
 				}
 			}
 		},
@@ -507,7 +554,7 @@ var ExICSData = (function () {
 				if(connectedClients.hasOwnProperty(user)){
 					User = {}
 					User['name'] = user;
-					User['room'] = connectedClients[user]['Room'];
+					User["room"] = connectedClients[user]["room"];
 					response['payload']['users'].push(User);
 				}
 			}

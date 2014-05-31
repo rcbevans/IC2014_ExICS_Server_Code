@@ -51,41 +51,45 @@ function onConnection(socket){
 
 						case PACKET_TYPE.EXAM_START:
 							serverUtils.log("Received Request from User " + username + " to Start Exam " + parsedMessage['payload']['exam'] + " in room " + parsedMessage['payload']['room']);
-							systemData.startExam(parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
+							systemData.startExam(username, parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
 								systemData.sendFailure(socket, username, "Failed to start exam " + parsedMessage['payload']['exam']);
 							});
 							break;
 
 						case PACKET_TYPE.EXAM_PAUSE:
 							serverUtils.log("Received Request from User " + username + " to Pause Exam " + parsedMessage['payload']['exam'] + " in room " + parsedMessage['payload']['room']);
-							systemData.pauseExam(parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
+							systemData.pauseExam(username, parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
 								systemData.sendFailure(socket, username, "Failed to pause exam " + parsedMessage['payload']['exam']);
 							});
 							break;
 
 						case PACKET_TYPE.EXAM_STOP:
 							serverUtils.log("Received Request from User " + username + " to Stop Exam " + parsedMessage['payload']['exam'] + " in room " + parsedMessage['payload']['room']);
-							systemData.stopExam(parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
+							systemData.stopExam(username, parsedMessage['payload']['room'], parsedMessage['payload']['exam'], function(){
 								systemData.sendFailure(socket, username, "Failed to stop exam " + parsedMessage['payload']['exam']);
 							});
 							break;
 
 						case PACKET_TYPE.EXAM_XTIME:
 							serverUtils.log("Received Request from User " + username + " to Add " + parsedMessage['payload']['time'] + " Minutes to Exam " + parsedMessage['payload']['exam'] + " in room " + parsedMessage['payload']['room']);
-							systemData.xtimeExam(parsedMessage['payload']['room'], parsedMessage['payload']['exam'], parsedMessage['payload']['time'], function(){
+							systemData.xtimeExam(username, parsedMessage['payload']['room'], parsedMessage['payload']['exam'], parsedMessage['payload']['time'], function(){
 								systemData.sendFailure(socket, username, "Failed to add extra time to exam " + parsedMessage['payload']['exam']);
 							});
 							break;
 
-						case PACKET_TYPE.SEND_MESSAGE:
+						case PACKET_TYPE.SEND_MESSAGE_ALL:
 							serverUtils.log("Received Send Message Response From User " + username);
-							if (parsedMessage["header"]["receiver"] === "") {
-								systemData.sendToAllClients(username, data);
-							} else {
-								systemData.sendToClient(parsedMessage["header"]["receiver"], data, function(){
-									systemData.sendMessageFailure(socket, parsedMessage, "Failed to send message to " + parsedMessage["header"]["receiver"]);
-								});
-							}
+							systemData.sendToAllClients(username, data);
+							break;
+
+						case PACKET_TYPE.SEND_MESSAGE_ROOM:
+							systemData.sendToAllInRoom(username, parsedMessage["payload"]["room"], data);
+							break;
+
+						case PACKET_TYPE.SEND_MESSAGE_USER:
+							systemData.sendToClient(username, parsedMessage["payload"]["username"], data, function(){
+								systemData.sendMessageFailure(username, socket, parsedMessage, "Failed to send message to " + parsedMessage["payload"]["username"]);
+							});
 							break;
 
 						case PACKET_TYPE.TERMINATE_CONNECTION:

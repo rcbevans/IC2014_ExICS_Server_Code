@@ -18,10 +18,10 @@ function examData(query, auth, clientResponse){
 	var converters = {};
 	converters['default'] = csvConvert.defaultView;
 	converters['date'] = csvConvert.dateView;
-  	converters['yeargroup'] = csvConvert.yearGroupView;
-  	converters['room'] = csvConvert.roomView;
-  	converters['session'] = csvConvert.sessionView;
-  	converters['exics'] = csvConvert.ExICSView;
+  converters['yeargroup'] = csvConvert.yearGroupView;
+  converters['room'] = csvConvert.roomView;
+  converters['session'] = csvConvert.sessionView;
+  converters['exics'] = csvConvert.ExICSView;
 
 	request(
     {
@@ -50,7 +50,7 @@ function examData(query, auth, clientResponse){
   			console.log(error);
   			clientResponse.writeHead(403, http.STATUS_CODES[403]);
   			clientResponse.write("NOT AUTHORIZED!");
-			clientResponse.end("NOT AUTHORIZED!");
+			  clientResponse.end("NOT AUTHORIZED!");
   		}
     });
 }
@@ -78,7 +78,7 @@ function examDataAPIDoc(query, auth, clientResponse){
   			console.log(error);
   			clientResponse.writeHead(403, http.STATUS_CODES[403]);
   			clientResponse.write("NOT AUTHORIZED!");
-			clientResponse.end();
+			  clientResponse.end();
   		}
     });
 }
