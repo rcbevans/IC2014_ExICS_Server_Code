@@ -7,11 +7,33 @@ var ServerUtils = (function () {
   var instance;
 
   function init(level) {
-
     // Singleton
     // Private methods and variables
-
     var fs = require('fs');
+    var mongoose = require('mongoose');
+    var db = mongoose.connection;
+    db.on('error', console.error.bind(console, 'connection error:'));
+    db.once('open', function callback () {
+      writeToLog("Successfully connected to mongodb test database");
+      var examSchema = mongoose.Schema({
+          exam: String,
+          title: String,
+          numqns: Number,
+          duration: Number,
+          date: String,
+          running: Boolean,
+          paused: Boolean,
+          pauseTimings: [{paused: String, resumed: String}],
+          start: String,
+          finish: String,
+          xTime: Number,
+          room: Number
+        });
+
+        exam = mongoose.model('Exam', examSchema);
+    });
+    var exam = null;
+    mongoose.connect('mongodb://localhost/completedExams');
 
     var currDateTime = new Date();
     if(!fs.existsSync('logs')){
@@ -61,29 +83,34 @@ var ServerUtils = (function () {
     	}
     }
 
+    writeToLog: function writeToLog(level, message){
+      var logLvl, logMessage;
+
+      if(typeof message === 'undefined'){
+        logLvl = logLevel;
+        logMessage = level;
+      } else {
+        if(typeof level === 'number'){
+          logLvl = getLogLevelText(level);
+        } else if(LOG_LEVEL.hasOwnProperty(level)){
+          logLvl = level; 
+        } else {
+          logLvl = logLevel;
+        }
+        logMessage = message;
+      }
+
+      var currentDateTime = new Date();
+      var finalMessage = "[" + currentDateTime.toJSON() + "][" + logLvl + "] " + logMessage;
+      console.log(finalMessage);
+      logStream.write(finalMessage + "\n");
+    }
+    
+
     return {
       	// Public methods and variables
       	log: function log(level, message){
-      		var logLvl, logMessage;
-
-      		if(typeof message === 'undefined'){
-      			logLvl = logLevel;
-      			logMessage = level;
-      		} else {
-      			if(typeof level === 'number'){
-      				logLvl = getLogLevelText(level);
-      			} else if(LOG_LEVEL.hasOwnProperty(level)){
-      				logLvl = level; 
-      			} else {
-      				logLvl = logLevel;
-      			}
-      			logMessage = message;
-      		}
-
-      		var currentDateTime = new Date();
-      		var finalMessage = "[" + currentDateTime.toJSON() + "][" + logLvl + "] " + logMessage;
-			console.log(finalMessage);
-			logStream.write(finalMessage + "\n");
+      		writeToLog(level, message);
       	},
 
       	closeLogStream: function closeLogStream(){
@@ -93,7 +120,24 @@ var ServerUtils = (function () {
       		logStream.write(finalMessage);
       		console.log(finalMessage);
       		logStream.end();
-      	}
+      	},
+
+        commitExam: function commitExam(completedExam){
+          this.log("Attempting to store exam " + completedExam.title);
+          if(exam != null){
+            var examToCommit = new exam(completedExam);
+            var logfunc = this.log;
+            examToCommit.save(function(err, examToCommit){
+              if(!err){
+                logfunc("Successfully saved exam version 1");
+              } else {
+                logfunc("Error occurred saving exam v1");
+              }
+            });
+          } else {
+            this.log("An Error has occurred trying to save exam " + completedExam.title);
+          }
+        }
     };
   };
 
@@ -113,11 +157,3 @@ var ServerUtils = (function () {
 })();
 
 exports.ServerUtils = ServerUtils;
-
-
-// function log(message){
-// 	var currentDateTime = new Date();
-// 	console.log(currentDateTime.toJSON(), message);
-// }
-
-// exports.log = log;

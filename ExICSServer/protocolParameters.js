@@ -48,11 +48,12 @@ header 								       header
   									           users = []
   									           exams = {}
 
-header
-  type = CHANGE_ROOM (4)
-  sender = 'username'
-payload
-  room = room
+header                        header
+  type = CHANGE_ROOM (4)        type = CHANGE_ROOM
+  sender = 'username'           sender = 'SYS'
+payload                       payload
+  room = room                   username = uname
+                                room = room
 
 header
   type = EXAM_START (5)
@@ -87,15 +88,8 @@ header
   type = SUCCESS (69)
   sender = 'SYS'
 payload
-	message = message
-
-header
-  type = SEND_MESSAGE (9)
-  sender = username
-  receiver = ""/user
-payload
-  message_type = message_type
   message = message
+
 
 header
   type = FAILURE (-1)

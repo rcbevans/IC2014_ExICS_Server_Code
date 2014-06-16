@@ -340,7 +340,7 @@ function ExICSView(csvString, response, sessionStart, sessionEnd){
 
 		var examDateTime = new Date(Date.parse(examTime + " " + examDate.split("-").reverse().join(' ') + " " + examYears[0]));
 
-		if (examDateTime.getMonth() <  9){
+		if (examDateTime.getMonth() <  10){
 			examDateTime.setFullYear(examYears[1]);
 		}
 

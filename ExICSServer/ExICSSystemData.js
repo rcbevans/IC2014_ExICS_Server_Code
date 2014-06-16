@@ -276,6 +276,7 @@ var ExICSData = (function () {
 					}
 				}
 				if(found){
+					serverUtils.commitExam(currentExams[room][position]);
 					currentExams[room].splice(position,1);
 					serverUtils.log(exam + " in room " + room + " has been removed from the system");
 					this.pushSystemStateAllClients();
