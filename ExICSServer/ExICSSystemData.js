@@ -420,10 +420,12 @@ var ExICSData = (function () {
 					var request = require('request');
 					var credentials = require('./AD_CONFIG');
 
+					var baseURL = "https://146.169.44.162:8443/examData?view=exics";
+
 					if(timeNow < s2Begin){
-						var examDataURL = "https://146.169.44.162:8443/examData?view=exics&sessionStart="+s1Begin.toJSON()+"&sessionEnd="+s2Begin.toJSON();
+						var examDataURL = baseURL + "&sessionStart="+s1Begin.toJSON()+"&sessionEnd="+s2Begin.toJSON();
 					} else {
-						var examDataURL = "https://146.169.44.162:8443/examData?view=exics&sessionStart="+s2Begin.toJSON()+"&sessionEnd="+s2End.toJSON();
+						var examDataURL = baseURL + "&sessionStart="+s2Begin.toJSON()+"&sessionEnd="+s2End.toJSON();
 					}
 
 					serverUtils.log("DEBUG", examDataURL);

@@ -3,8 +3,8 @@ var request = require('request'),
 	fs = require('fs'),
 	csvConvert = require('./csvConvert'),
 	ppSpace = 2,
-		csvURL = "https://146.169.13.35/prog/ttformjw03.cgi";
-		//csvURL = "https://exams.doc.ic.ac.uk/prog/ttformjw03.cgi";
+	csvURL = "https://146.169.13.35/prog/ttformjw03.cgi";
+	//csvURL = "https://exams.doc.ic.ac.uk/prog/ttformjw03.cgi";
 
 function redirect(query, auth, clientResponse){
 	clientResponse.writeHead(302, http.STATUS_CODES[302], {
@@ -25,11 +25,11 @@ function examData(query, auth, clientResponse){
 
 	request(
 		{
-				url : csvURL,
-				headers : {
-						"Authorization" : auth
-				},
-				strictSSL : false
+			url : csvURL,
+			headers : {
+					"Authorization" : auth
+			},
+			strictSSL : false
 		},
 		function (error, response, body) {
 				if (!error && response.statusCode == 200) {
