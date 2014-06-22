@@ -171,6 +171,7 @@ var ExICSData = (function () {
 			} else {
 				callback(false);
 			}
+			// this.pushSystemStateAllClients();
 			broadcastConnected(username);
 			this.printClients();
 		},
@@ -179,6 +180,7 @@ var ExICSData = (function () {
 			if(connectedClients.hasOwnProperty(username)){
 				connectedClients[username]["room"] = newRoom;
 			}
+			this.pushSystemStateAllClients();
 			broadcastRoomChange(username, newRoom);
 			this.printClients();
 		},
@@ -190,6 +192,7 @@ var ExICSData = (function () {
 				serverUtils.log("Successfully Removed " + username);
 				delete connectedClients[username];
 			}
+			this.pushSystemStateAllClients();
 			broadcastDisconnected(uname, room);
 			this.printClients();
 		},
@@ -430,8 +433,6 @@ var ExICSData = (function () {
 
 					serverUtils.log("DEBUG", examDataURL);
 
-					// serverUtils.log(examDataURL);
-
 					var options = {
 					    url : examDataURL,
 				        headers : {
@@ -444,7 +445,7 @@ var ExICSData = (function () {
 						var ExICSData = require('./ExICSSystemData').ExICSData.getInstance();
 						if (!error && response.statusCode == 200) {
 							
-							serverUtils.log("DEBUG", body);
+							// serverUtils.log("DEBUG", body);
 
 							lastSynchronized = timeNow;
 							var examData = JSON.parse(body);
@@ -483,14 +484,14 @@ var ExICSData = (function () {
 							}
 							serverUtils.log("Completed Adding Exams, added exams in " + Object.keys(currentExams).length + " rooms");
 							syncLock = false;
-							ExICSData.pushSystemState(socket);
+							ExICSData.pushSystemStateAllClients()
 						} else {
 							serverUtils.log("Failed to fetch exam data information for API");
 							syncLock = false;
 							ExICSData.sendFailure(socket, "", "Failed to fetch exam data from API")
 						}
 					});
-					// syncLock = false;
+					syncLock = false;
 				} else {
 					serverUtils.log("Data Sync Not Necessary");
 					syncLock = false;

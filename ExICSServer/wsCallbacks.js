@@ -129,8 +129,8 @@ function onConnection(socket){
 				} else {
 					username = uname;
 					auth = true;
-					serverUtils.log("Successfully authenticated user " + uname);
 					systemData.sendAuthSuccess(socket, username);
+					serverUtils.log("Successfully authenticated user " + uname);
 					systemData.synchronizeServerState(socket);
 				}
 			});
